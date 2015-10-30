@@ -15,7 +15,9 @@ namespace Decomposition
         {
             IdsReader idsr = new IdsReader();
             idsr.AnalyzeFile(@"C:\Users\Louis\Desktop\ids.txt");
-            
+
+            var testX = idsr.RealAlgo(new List<char> { '殺', '式' });
+
             //using (var file = new StreamWriter(@"C:\Users\Louis\Desktop\dg.txt", false, Encoding.UTF8))
             //{
             //    idsr.DGraph.Serialize(file);
@@ -23,6 +25,8 @@ namespace Decomposition
 
             //var d = idsr.GetDecomposition("滞");
             //var cp = idsr.GetCompounds("一");
+
+            var graph = idsr.GetDecompositionWithGraph("部");
 
             var dkorosu = idsr.GetDecomposition("殺").Distinct();
             var dshiki = idsr.GetDecomposition("式").Distinct();
@@ -38,6 +42,7 @@ namespace Decomposition
 #endif
             // on cherche 歸
             var test4 = idsr.SearchKanji(new List<char> { '師', '雪', '足' });
+            var test5 = idsr.RealAlgo(new List<char> { '師', '雪', '足' });
         }
 
         public static List<string> FilterChar(IEnumerable<string> input)
@@ -77,7 +82,7 @@ namespace Decomposition
                 return;
             }
             // on supprime la portion 2 l'éventuelle partie entre crochets
-            if(parts[2].IndexOf('[') > 0)
+            if (parts[2].IndexOf('[') > 0)
             {
                 parts[2] = parts[2].Substring(0, parts[2].IndexOf('['));
             }
@@ -85,11 +90,11 @@ namespace Decomposition
             IEnumerable<char> components = parts[2].ToCharArray().Where(c => c < '⿰' || c > '⿻');
             foreach (char c in components)
             {
-                //if (parts[1] != c.ToString())
-                //{
+                if (!parts[1].Equals(c.ToString()))
+                {
                     DGraph.AddVertex(parts[1], c.ToString());
                     CGraph.AddVertex(c.ToString(), parts[1]);
-                //}
+                }
             }
         }
 
@@ -142,6 +147,37 @@ namespace Decomposition
             return result;
         }
 
+        public Tuple<IEnumerable<string>, string> GetDecompositionWithGraph(string k)
+        {
+            return GetDecompositionWithGraph(CGraph, k, null, null, new StringBuilder());
+        }
+
+        private Tuple<IEnumerable<string>, string> GetDecompositionWithGraph(AdjacencyListGraph<string> graph, string k, List<Vertex> parcoured, List<string> result, StringBuilder vs)
+        {
+            if (parcoured == null)
+            {
+                parcoured = new List<Vertex>();
+            }
+            if (result == null)
+            {
+                result = new List<string>();
+            }
+
+            Vertex v = graph.GetVertex(k);
+            if (v != null && !parcoured.Contains(v))
+            {
+                parcoured.Add(v);
+                foreach (Vertex link in v.LinkedVertices)
+                {
+                    result.Add(link.Value);
+                    vs.Append(String.Format("{0} -> {1};\r\n", v.Value, link.Value));
+                    GetDecompositionWithGraph(graph, link.Value, parcoured, result, vs);
+                }
+            }
+
+            return new Tuple<IEnumerable<string>, string>(result, vs.ToString());
+        }
+
         // implémente la fonction e(k, c)
         public bool ComponentExists(string kanji, string component)
         {
@@ -166,6 +202,37 @@ namespace Decomposition
             }
 
             return initSet;
+        }
+
+        public IEnumerable<string> RealAlgo(IList<char> kanjis)
+        {
+            List<string> initStep = GetSet(kanjis[0].ToString()).ToList();
+            List<string> result = initStep;
+
+            // on itère sur les Kn d'entrées
+            for (int i = 1; i < kanjis.Count; i++)
+            {
+                string Kn = kanjis[i].ToString();
+                List<string> newResult = new List<string>();
+                //var KnComp = GetDecomposition(Kn);
+
+                foreach (string elem in result)
+                {
+                    bool haveCommonComponent = false;
+                    foreach (var comp in GetDecomposition(elem))
+                    {
+                        haveCommonComponent |= ComponentExists(Kn, comp);
+                    }
+                    if (haveCommonComponent)
+                    {
+                        newResult.Add(elem);
+                    }
+                }
+
+                result = newResult;
+            }
+
+            return result;
         }
 
         public IEnumerable<string> __debug(IEnumerable<string> set0, IEnumerable<string> set1)
