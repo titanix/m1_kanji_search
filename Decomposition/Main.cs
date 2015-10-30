@@ -1,30 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using LayeredGraphDictionary;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+
+using LayeredGraphDictionary;
 
 namespace Decomposition
 {
-    public class Program
+    public class Prototype
     {
+        /// <summary>
+        /// Point d'entrée de l'application.
+        /// </summary>
         public static void Main()
         {
             IdsReader idsr = new IdsReader();
-            idsr.AnalyzeFile(@"C:\Users\Louis\Desktop\ids.txt");
+            LoadData(idsr);
 
             var testX = idsr.RealAlgo(new List<char> { '殺', '式' });
-
-            //using (var file = new StreamWriter(@"C:\Users\Louis\Desktop\dg.txt", false, Encoding.UTF8))
-            //{
-            //    idsr.DGraph.Serialize(file);
-            //}
-
-            //var d = idsr.GetDecomposition("滞");
-            //var cp = idsr.GetCompounds("一");
 
             var graph = idsr.GetDecompositionWithGraph("部");
 
@@ -43,6 +40,25 @@ namespace Decomposition
             // on cherche 歸
             var test4 = idsr.SearchKanji(new List<char> { '師', '雪', '足' });
             var test5 = idsr.RealAlgo(new List<char> { '師', '雪', '足' });
+        }
+
+        public static void AppendToFile(string path, string content)
+        {
+            using (StreamWriter sw = new StreamWriter(path, true, Encoding.UTF8))
+            {
+                sw.WriteLine(content);
+            }
+        }
+
+        public static void LoadData(IdsReader idsr)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            string resourceName = "Decomposition.ids.txt";
+
+            using (Stream resourceStream = assembly.GetManifestResourceStream(resourceName))
+            {
+                idsr.AnalyzeDataFile(resourceStream);
+            }
         }
 
         public static List<string> FilterChar(IEnumerable<string> input)
@@ -98,9 +114,9 @@ namespace Decomposition
             }
         }
 
-        public void AnalyzeFile(string path)
+        public void AnalyzeDataFile(Stream stream)
         {
-            using (StreamReader sr = new StreamReader(path))
+            using (StreamReader sr = new StreamReader(stream))
             {
                 while (!sr.EndOfStream)
                 {
